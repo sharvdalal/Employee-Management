@@ -75,7 +75,9 @@ class AttendancesController extends AppController
     //     $this->set('date', $date);
     // }
 
-    
+    public function manage(){
+        
+    }
 
     public function showattendancedata($date = null)
     {
