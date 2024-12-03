@@ -43,7 +43,7 @@
 
 <script>
     function addEmployeePage() {
-        window.location.href = `http://localhost:8765/attendances/add`;
+        window.location.href = `http://localhost:8765/attendances/manage`;
     }
 
     function attendanceRecordPage(){

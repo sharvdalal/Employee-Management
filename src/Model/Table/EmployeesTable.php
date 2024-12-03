@@ -44,9 +44,9 @@ class EmployeesTable extends Table
         $this->hasMany('Attendances', [
             'foreignKey' => 'employee_id',
         ]);
-        // $this->hasMany('Payrolls', [
-        //     'foreignKey' => 'employee_id',
-        // ]);
+        $this->hasMany('Payrolls', [
+            'foreignKey' => 'employee_id',
+        ]);
     }
 
     /**
