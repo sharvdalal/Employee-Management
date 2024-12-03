@@ -84,14 +84,14 @@ class AttendancesController extends AppController
             $month = $attendanceDate['month'];
             $day = $attendanceDate['day'];
             $date = $year . '-' . $month . '-' . $day;
-            $employees = $this->paginate( $this->Employees->find()
+            $employees =  $this->Employees->find()
                     ->where(['Employees.joining_date <=' => $date])
                     ->contain([
                         'Attendances' => function ($q) use ($date) {
                             return $q->select(['status', 'date', 'employee_id'])
                                 ->where(['Attendances.date' => $date]);
                         }
-                    ])
+                    ]
             );
             $this->set(compact('employees'));
             $datesend = $year. $month  . $day; 
@@ -169,4 +169,6 @@ class AttendancesController extends AppController
         $this->set(compact('attendances'));
         $this->set('date', $date);
     }
+
+    
 }
