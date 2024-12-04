@@ -70,23 +70,22 @@
 
     <?php if (isset($employeeData)): ?>
         <div style="height: max-content;">
-            <?php $employeeSalary = 0; ?>
+
             <?php
             list($year, $monthNumber) = explode('-', $datetoFind);
             $month = DateTime::createFromFormat('!m', $monthNumber)->format('F');
             ?>
 
             <?php foreach ($employeeData as $employee): ?>
-                <?php $employeeSalary = $employee["salary"] ?>
                 <div id="payroll-summary">
                     <div style="padding: 20px; max-width: 600px; margin: 20px auto; font-family: Arial, sans-serif; background-color: #f9f9f9; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                         <h3 style="margin-bottom: 20px; text-align: center; font-size: 20px; color: #333;">
                             <b>Payroll Data for <?= $month ?> and <?= $year ?></b>
                         </h3>
-                        <input id="empId" type="hidden" value=<?= $employee["id"] ?> style="display: none;">
-                        <input id="empDate" type="hidden" value=<?= $datetoFind ?> style="display: none;">
-                        <input id="empSalary" type="hidden" value=<?= $employee["salary"] ?> style="display: none;">
-
+                        <input id="empId" type="number" value= <?=$employee["id"]?> style="display: none;">
+                        <input id="empDate" type="text" value= <?=$datetoFind?> style="display: none;">
+                        <input id="empSalary" type="text" value= <?=$employee["salary"]?> style="display: none;">
+                        
 
                         <div style="margin-bottom: 10px; display: flex; justify-content: space-between;">
                             <span style="font-weight: bold; color: #555;">Employee Name:</span>
@@ -128,11 +127,10 @@
         </div>
 
         <div style="text-align: center; padding: 15px; margin: 20px auto; max-width: 600px; background-color: #f1f1f1; border: 2px solid #007bff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
-            <h3 style="margin: 0; font-size: 24px; color: #007bff; font-weight: bold;">
-                <input id="employee-salary-display" type="hidden" name="" value=" <?= $employeeSalary ?>">
-                Final Net Pay for October 2024: <span id="net-pay-value" style="color: #28a745;"> <?= $employeeSalary ?></span>
-            </h3>
-        </div>
+    <h3 style="margin: 0; font-size: 24px; color: #007bff; font-weight: bold;">
+        Final Net Pay for October 2024: <span style="color: #28a745;">45,000/-</span>
+    </h3>
+</div>
 
 
 
@@ -145,14 +143,7 @@
                 + Add Adjustment
             </button>
         </div>
-
-        <button
-            id="submit-adjustments"
-            onclick="submitAdjustments(); this.style.backgroundColor='#0056b3'; this.style.transform='scale(0.98)';"
-            onmouseover="this.style.backgroundColor='#0056b3'; this.style.cursor='pointer';"
-            onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)';"
-            type="button"
-            style="display: block; margin: 20px auto; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease;">
+        <button id="submit-adjustments" onclick="submitAdjustments()" type="button" style="display: block; margin: 20px auto; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
             Submit Adjustments
         </button>
     <?php endif; ?>
@@ -234,74 +225,18 @@
                 </select>
                 <input id="desc desc-${rowId}"   type="text" placeholder="Description" style="flex: 2; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
                 <input id="amount amount-${rowId}"  type="number" placeholder="Amount" style="flex: 1; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-                <button type="button" onclick="applyAdjustment('${rowId}')" style="padding: 5px 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">Update</button>
+                <button type="button" onclick="addAdjustment('${rowId}')" style="padding: 5px 10px; background-color: #ffd504; color: black; border: none; border-radius: 4px; cursor: pointer;">Add</button>
                 <button type="button" onclick="removeAdjustment('${rowId}')" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">X</button>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', adjustmentRow);
     };
 
-    function applyAdjustment(rowId) {
-        let adjustDiv = document.getElementById(rowId);
-
-
-        const select = adjustDiv.querySelector('select');
-
-
-        const inputs = adjustDiv.querySelectorAll('input');
-
-
-        const type = select ? select.value : null;
-        const amount = inputs.length > 1 ? inputs[1].value : '';
-
-        if (!type || isNaN(amount) || amount <= 0) {
-            alert("Please select a valid type and enter a positive amount.");
-            return;
+    function removeAdjustment(id) {
+        const row = document.getElementById(id);
+        if (row) {
+            row.remove();
         }
-        console.log(amount + " " + type);
-        updateNetPay(amount, type);
-
-        if (select) {
-            select.disabled = true;
-        }
-
-        inputs.forEach(input => {
-            input.disabled = true;
-        });
-
-
-
-    }
-
-    function removeAdjustment(rowId) {
-        const select = document.getElementById(`select-${rowId}`);
-        const amountInput = document.getElementById(`amount-${rowId}`);
-        const type = select.value;
-        const amount = parseFloat(amountInput.value);
-
-        if (type && !isNaN(amount) && amount > 0) {
-
-            updateNetPay(amount, type === "Bonus" ? "Deductions" : "Bonus");
-        }
-
-
-        const row = document.getElementById(rowId);
-        if (row) row.remove();
-    }
-    let finalNetPay = document.querySelector("#employee-salary-display").value;
-    let finalNetPayNum = Number(finalNetPay);
-    const netPayElement = document.querySelector("#net-pay-value");
-
-    function updateNetPay(amount, type) {
-        amount = Number(amount);
-        if (type === "Bonus") {
-            finalNetPayNum += amount;
-        } else if (type === "Deductions") {
-            finalNetPayNum -= amount;
-        }
-        console.log(finalNetPayNum);
-
-        netPayElement.textContent = finalNetPayNum + "/-";
     }
 
     function submitAdjustments() {
@@ -329,20 +264,13 @@
         xhr.open('POST', '/payrolls/calculateSalary', true);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        var adjustmentsJson = JSON.stringify(adjustments);
-        var id = $('#empId').val();
-        var date = $('#empDate').val();
-        var salary = $('#empSalary').val();
-
-        var data = 'adjustments=' + encodeURIComponent(adjustmentsJson) + '&date=' + encodeURIComponent(date) + '&salary=' + encodeURIComponent(salary) + '&id=' + encodeURIComponent(id);
-
+        var adjustmentsJson = JSON.stringify(adjustments); 
+        var data = 'adjustments=' + encodeURIComponent(adjustmentsJson);
         xhr.onload = function() {
-            if (xhr.status === 200) {
+            if (xhr.status === 200 || xhr.status === 500) {
                 try {
                     var response = JSON.parse(xhr.responseText);
-                    console.log(response.message);
-                    window.location.href = `/payrolls/view/${response.employeeId}/${response.payrollId}`;
-
+                    if (xhr.status === 200) {} else {}
                 } catch (e) {
                     console.error('Error parsing JSON response:', e);
                     console.error('Response:', xhr.responseText);
@@ -351,9 +279,25 @@
                 console.error('Unexpected error with status:', xhr.status);
             }
         };
-
         xhr.send(data);
 
 
     }
 </script>
+
+
+here onClick addAdjustments 
+
+the value should be added to  Final Net Pay if select type bonus else deduction
+and on remove should be deleted based on select type
+
+
+
+
+
+
+
+
+
+
+$salary = $this->request->getData('salary');

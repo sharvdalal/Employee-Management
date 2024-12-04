@@ -76,10 +76,10 @@
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         var data = 'status=' + status + '&employee_id=' + employeeId + '&date=' + date.toString();
         xhr.onload = function() {
-            if (xhr.status === 200 || xhr.status === 500) { // Handling success and failure cases
+            if (xhr.status === 200 || xhr.status === 500) { 
                 try {
-                    var response = JSON.parse(xhr.responseText); // Parse the JSON response
-                    console.log(response.message); // Log the message to the console
+                    var response = JSON.parse(xhr.responseText);
+                    console.log(response.message); 
 
                     if (xhr.status === 200) {
                         $('#icon-id-' + employeeId).html('<i class="fa-solid fa-check" style="color: #28f000; font-size: 24px;"></i>');
