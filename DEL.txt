@@ -301,3 +301,125 @@ and on remove should be deleted based on select type
 
 
 $salary = $this->request->getData('salary');
+
+
+
+
+
+
+
+
+
+<div class="text-center" style="font-family: Arial, sans-serif; margin: 20px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 300px; margin: 20px auto;">
+    <div style="display: flex; justify-content: space-between; font-size: 1.1rem; margin-bottom: 10px; align-items: center;">
+        <strong style="font-weight: bold; color: #333;">Net Pay Per Month:</strong>
+        <span id="net-pay" style="font-weight: bold; color: #28a745; font-size: 1.25rem;"><?= h($employee["salary"]) ?></span>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; font-size: 1.1rem; margin-bottom: 10px; align-items: center;">
+        <p style="font-weight: bold; color: #333;">Absent Cut:</p>
+        <p id="absent-cut" style="color: #dc3545;"><b><?= $absentCut ?></b></p>
+    </div>
+    
+    <div style="height: 1px; background-color: #ddd; margin: 10px 0;"></div>
+    
+    <div style="display: flex; justify-content: space-between; font-size: 1.25rem; font-weight: bold; align-items: center;">
+        <strong style="font-weight: bold; color: #333;">Final Salary:</strong>
+        <span id="final-cut" style="font-size: 1.5rem; font-weight: bold; color: #007bff;"><?= h($finalSalary) ?></span>
+    </div>
+</div>
+
+
+
+ {
+     
+        $payroll = $this->Payrolls->find()
+            ->where(['Payrolls.id' => $payrollId, 'Payrolls.employee_id' => $employeeId])
+            ->contain(['Employees', 'PayrollAdjustments'])
+            ->first();
+    
+        if (!$payroll) {
+            
+            $this->Flash->error(__('Payroll not found.'));
+            return $this->redirect(['action' => 'index']); 
+        }
+    
+
+        $employee = $payroll->employee;
+    
+     
+        $datetoFind = $payroll->year . '-' . $payroll->month;
+        $employeeAttendance = $this->Employees->find()
+            ->where(['Employees.id' => $employeeId])
+            ->contain(['Attendances' => function ($q) use ($datetoFind) {
+                return $q->where([
+                    'Attendances.date LIKE' => $datetoFind . '%'
+                ]);
+            }])
+            ->first();
+    
+        if (!$employeeAttendance) {
+            $this->Flash->error(__('Attendance data not found.'));
+            return $this->redirect(['action' => 'index']);
+        }
+    
+     
+        $totWorkingDays = $this->getWorkingDays($datetoFind); 
+        $totPRE = 0;
+        $totLEV = 0;
+        $totABS = 0;
+    
+        foreach ($employeeAttendance->attendances as $attendance) {
+            if ($attendance->status === 'present') {
+                $totPRE++;
+            } elseif ($attendance->status === 'leave') {
+                $totLEV++;
+            } elseif ($attendance->status === 'absent') {
+                $totABS++;
+            }
+        }
+        $this->set(compact('payroll', 'employee', 'totWorkingDays', 'totPRE', 'totLEV', 'totABS'));
+    }
+
+
+    <div>
+    <p><strong>Payroll for:</strong> <?= h($payroll->month) ?> <?= h($payroll->year) ?></p>
+    <p><strong>Employee Name:</strong> <?= h($employee->name) ?></p>
+    <p><strong>Employee Department:</strong> <?= h($employee->department) ?></p>
+    <p><strong>Employee Designation:</strong> <?= h($employee->designation) ?></p>
+    <p><strong>Employee Base Pay/Month:</strong> <?= h($employee->base_salary) ?></p>
+</div>
+
+<!-- Attendance Summary -->
+<div>
+    <p><strong>Total Working Days:</strong> <?= h($totWorkingDays) ?></p>
+    <p><strong>Total Present:</strong> <?= h($totPRE) ?></p>
+    <p><strong>Total Leaves:</strong> <?= h($totLEV) ?></p>
+    <p><strong>Total Absent:</strong> <?= h($totABS) ?></p>
+</div>
+
+<!-- Payroll Adjustments -->
+<h4>Payroll Adjustments</h4>
+<table>
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($payroll->payroll_adjustments as $adjustment): ?>
+            <tr>
+                <td><?= h($adjustment->type) ?></td>
+                <td><?= h($adjustment->name) ?></td>
+                <td><?= h($adjustment->amount) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+
+<!-- Final Payroll Calculation (Base Salary + Adjustments) -->
+<div>
+    <p><strong>Final Payroll:</strong> <?= h($employee->base_salary + $totPRE - $totABS) ?></p>
+</div>

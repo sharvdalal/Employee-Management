@@ -15,7 +15,10 @@ class PayrollsController extends AppController
         $this->loadModel('PayrollAdjustments');
     }
 
-    public function index() {}
+    public function index() {
+
+
+    }
 
 
     public function add()
@@ -42,12 +45,13 @@ class PayrollsController extends AppController
                 $employee_id = (int) $data['employee_id'];
                 $datetoFind = $data['year'] . '-' . $data['month'];
                 $monthName = $this->getMonthName($data['month']);
-                $payrollPresent = $this->Payrolls->find()
-                    ->where(['employee_id' => $employee_id, 'month' => $monthName, 'year' => $data['year']])->first();
-                if ($payrollPresent) {
-                    $payroll_id = $payrollPresent->id;
-                    return $this->redirect(['action' => 'view', $employee_id, $payroll_id]);
-                }
+                // $payrollPresent = $this->Payrolls->find()
+                //     ->where(['employee_id' => $employee_id, 'month' => $monthName, 'year' => $data['year']])->first();
+                // if ($payrollPresent) {
+                //     $payroll_id = $payrollPresent->id;
+                    // $this->Flash->success(__('The payroll has been Generated Before.'));
+                //     return $this->redirect(['action' => 'view',$datetoFind, $employee_id, $payroll_id]);
+                // }
                 $employeeData = $this->Employees->find()
                     ->where(['Employees.id' => $employee_id])
                     ->contain([
@@ -61,6 +65,7 @@ class PayrollsController extends AppController
 
                 if (!$employeeData) {
                     $this->Flash->error('No data found for the given employee.');
+                    $this->render('add');
                     return;
                 }
 
@@ -68,6 +73,7 @@ class PayrollsController extends AppController
 
                 if (empty($employeeAttendanceArray)) {
                     $this->Flash->error('No attendance records found.');
+                    $this->render('add');
                     return;
                 }
 
@@ -85,6 +91,12 @@ class PayrollsController extends AppController
                     elseif ($attenData["status"] == "leave") $totLEV++;
                 }
 
+                if(($totPRE + $totABS + $totLEV) != $totWorkingDays){
+                    $this->Flash->error('Incorrect attendance record found For Given Period. Please Check Attendance data in Show Attendances');
+                    $this->render('add');
+                    return;
+                }
+
                 $employeeDataArray = $employeeData->enableHydration(false)->toArray();
                 $this->set(compact('totPRE', 'totABS', 'totLEV', 'totWorkingDays', 'datetoFind', 'employeeData'));
                 $this->render('add');
@@ -96,6 +108,7 @@ class PayrollsController extends AppController
                 $date = $this->request->getData('date');
                 $payroll_adjustments = $this->request->getData('payroll_adjustments');
                 list($year, $month) = explode('-', $date);
+                
                 $data = [
                     'employee_id' => $employee_id,
                     'month' => $this->getMonthNameSecond($month),
@@ -111,13 +124,53 @@ class PayrollsController extends AppController
 
                 if ($this->Payrolls->save($payroll)) {
                     $this->Flash->success(__('The payroll has been saved.'));
-                    return $this->redirect(['action' => 'view',$employee_id, $payroll->id]);
+                    return $this->redirect(['action' => 'view',$date, $employee_id, $payroll->id]);
                 } else {
                     $this->Flash->error(__('Unable to save the payroll. Please try again.'));
                 }
         
             }
         }
+    }
+
+
+
+    public function view($date, $employeeId, $payrollId) 
+    {
+        $attendance = $this->Attendances->find()
+        ->where(['employee_id' => $employeeId, 'date LIKE' => $date . '%']);    
+
+      $attendanceData =   $attendance->enableHydration(false)->toArray();
+ 
+
+
+      $totWorkingDays = $this->getWorkingDays($date); 
+        $totPRE = 0;
+        $totLEV = 0;
+        $totABS = 0;
+    
+        foreach ($attendanceData as $attendance) {
+            if ($attendance["status"] === 'present') {
+                $totPRE++;
+            } elseif ($attendance["status"] === 'leave') {
+                $totLEV++;
+            } elseif ($attendance["status"] === 'absent') {
+                $totABS++;
+            }
+        }
+
+
+        $employee = $this->Employees->find()->where(['id' => $employeeId]);
+        $employeeData =   $employee->enableHydration(false)->toArray();
+
+        $payroll = $this->Payrolls->find()
+            ->where(['Payrolls.id' => $payrollId, 'Payrolls.employee_id' => $employeeId])
+            ->contain(['PayrollAdjustments']);
+            
+        $payrollData =   $payroll->enableHydration(false)->toArray();
+       
+        $this->set(compact('payrollData', 'employeeData', 'attendanceData', 'date', 'totWorkingDays','totPRE', 'totLEV', 'totABS'));
+        $this->render('view');
     }
 
 
@@ -140,6 +193,29 @@ class PayrollsController extends AppController
                 ->withStatus(200)
                 ->withType('application/json')
                 ->withStringBody(json_encode(['message' => 'Got Data Successfully', 'employees' => $employees]));
+        }
+    }
+    public function fetchPayrollID(){
+        if ($this->request->is('ajax')) {
+            $employee_id = (int) $this->request->getData('employee_id');
+            $month = $this->request->getData('month');
+            $year = $this->request->getData('year');
+            $payroll = $this->Payrolls->find()
+            ->where(['employee_id' => $employee_id, 'year' => $year, 'month' => $month])
+            ->first();
+            
+            if (!$payroll) {
+                return $this->response
+                    ->withStatus(404, 'Payroll Not Found')
+                    ->withType('json')
+                    ->withStringBody(json_encode(['message' => 'Payroll data not found for the given employee.']));
+            }
+            $id = $payroll->id;
+            return $this->response
+            ->withStatus(200, 'Payroll  Found')
+            ->withType('json')
+            ->withStringBody(json_encode(['message' => 'Payroll data  found for the given employee.', 'id' => $id]));                                              
+           
         }
     }
 
@@ -194,7 +270,14 @@ class PayrollsController extends AppController
     // }
 
 
-    public function view($employeeId, $payrollId) {}
+   
+
+    
+
+
+    
+   
+    
 
 
 
@@ -204,6 +287,9 @@ class PayrollsController extends AppController
     {
         $this->autoRender = false;
         [$year, $month] = explode('-', $monthYear);
+        if (is_numeric($month) === false) {
+            $month = date('m', strtotime($month)); 
+        }
         $totalDays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
         $workingDays = 0;
         for ($day = 1; $day <= $totalDays; $day++) {

@@ -70,7 +70,7 @@ Router::scope('/', function (RouteBuilder $routes) {
     $routes->connect('/pages/*', ['controller' => 'Pages', 'action' => 'display']);
     Router::connect('/addattendance/:date', ['controller' => 'Attendances', 'action' => 'addattendance']);
     Router::connect('/showattendancedata/:date', ['controller' => 'Attendances', 'action' => 'showattendancedata']);
-    Router::connect('/view/:employeeId/:payrollId', ['controller' => 'Payrolls', 'action' => 'view']);
+    Router::connect('/view/:date/:employeeId/:payrollId', ['controller' => 'Payrolls', 'action' => 'view']);
 
 
     /*
