@@ -210,7 +210,82 @@ class PayrollsController extends AppController
     }
 
 
-    public function payrollemp($year, $month) {}
+    public function payrollempmon($year, $month) {
+        $query = $this->Employees->find()
+            ->select([
+                'employee_name' => 'Employees.name', 
+                'employee_department' => 'Employees.department',
+                'employee_base_salary' => 'Payrolls.base_salary',
+                'total_bonus' => $this->Employees->find()->func()->sum('TotalAdjustments.total_bonus'),
+                'total_deductions' => $this->Employees->find()->func()->sum('TotalAdjustments.total_deductions'),
+            ])
+            ->leftJoin(
+                ['Payrolls'],
+                ['Employees.id = Payrolls.employee_id']
+            )
+            ->leftJoin(
+                [
+                    'TotalAdjustments' =>
+                    $this->PayrollAdjustments->query()
+                        ->select([
+                            'payroll_id' => 'PayrollAdjustments.payroll_id',
+                            'total_bonus' => $this->PayrollAdjustments->query()->func()->sum(
+                                $this->PayrollAdjustments->query()->newExpr('CASE WHEN PayrollAdjustments.type = "Bonus" THEN PayrollAdjustments.amount ELSE 0 END')
+                            ),
+                            'total_deductions' => $this->PayrollAdjustments->query()->func()->sum(
+                                $this->PayrollAdjustments->query()->newExpr('CASE WHEN PayrollAdjustments.type = "Deductions" THEN PayrollAdjustments.amount ELSE 0 END')
+                            )
+                        ])
+                        ->group('PayrollAdjustments.payroll_id')
+                ],
+                ['Payrolls.id = TotalAdjustments.payroll_id']
+            )
+            ->where(['Payrolls.month' => $month, 'Payrolls.year' => $year])
+            ->group(['Employees.name', 'Employees.department','Payrolls.base_salary']);
+        $Qarray = $query->enableHydration(false)->toArray();
+        $ok = 1;
+        $this->set(compact('query', 'year', 'month'));
+
+    }
+
+
+    public function payrollempyear($year){
+        $query = $this->Employees->find()
+        ->select([
+            'employee_name' => 'Employees.name', 
+            'department' => 'Employees.department',
+            'year' => 'Payrolls.year',
+            'total_base_salary' => $this->Payrolls->find()->func()->sum('Payrolls.base_salary'),
+            'total_bonus' => $this->Employees->find()->func()->sum('TotalAdjustments.total_bonus'),
+            'total_deductions' => $this->Employees->find()->func()->sum('TotalAdjustments.total_deductions'),
+        ])
+        ->leftJoin(
+            ['Payrolls'],
+            ['Employees.id = Payrolls.employee_id']
+        )
+        ->leftJoin(
+            [
+                'TotalAdjustments' =>
+                $this->PayrollAdjustments->query()
+                    ->select([
+                        'payroll_id' => 'PayrollAdjustments.payroll_id',
+                        'total_bonus' => $this->PayrollAdjustments->query()->func()->sum(
+                            $this->PayrollAdjustments->query()->newExpr('CASE WHEN PayrollAdjustments.type = "Bonus" THEN PayrollAdjustments.amount ELSE 0 END')
+                        ),
+                        'total_deductions' => $this->PayrollAdjustments->query()->func()->sum(
+                            $this->PayrollAdjustments->query()->newExpr('CASE WHEN PayrollAdjustments.type = "Deductions" THEN PayrollAdjustments.amount ELSE 0 END')
+                        )
+                    ])
+                    ->group('PayrollAdjustments.payroll_id')
+            ],
+            ['Payrolls.id = TotalAdjustments.payroll_id']
+        )
+        ->where(['Payrolls.year' => $year])
+        ->group(['Employees.name', 'Employees.department','Payrolls.year']);
+    $Qarray = $query->enableHydration(false)->toArray();
+    $ok = 1;
+    $this->set(compact('query', 'year'));
+    }
 
 
 

@@ -143,3 +143,181 @@
         $Qarray = $query->enableHydration(false)->toArray();
         $ok = 1;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div style="margin-bottom: 5rem;">
+        <h2 style="text-align: center;">Payroll Management</h2>
+    </div>
+
+    <div style="width: 300px; margin: 20px auto; padding: 20px; border-radius: 10px; background-color: #fff; 
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); transition: box-shadow 0.3s ease; margin-bottom: 5rem;" 
+         onmouseover="this.style.boxShadow='0 20px 40px rgba(0, 0, 0, 0.3)';" 
+         onmouseout="this.style.boxShadow='0 10px 20px rgba(0, 0, 0, 0.2)';">
+        <div style="text-align: center; padding: 20px;">
+            <h3 style="margin-bottom: 20px; color: #333;">Generate Payroll</h3>
+            <button onclick="generatePayrollPage()" style="padding: 10px 20px; font-size: 16px; background-color: #007bff; 
+                    color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s;">
+                Generate Payroll
+            </button>
+        </div>
+    </div>
+
+    <h3 style="text-align: center;">View Payroll Options</h3>
+    <fieldset style="border: none; padding: 0; margin-bottom: 3rem;">
+
+        <div style="margin-bottom: 2rem;">
+            <h4>View Department Salary (Month & Year)</h4>
+            <div style="display: flex; justify-content: space-between;">
+                <div style="flex: 0 0 48%;">
+                    <label for="dept-month">Month</label>
+                    <select id="dept-month" name="dept_month" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;">
+                        <option value="">Select Month</option>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div style="flex: 0 0 48%;">
+                    <label for="dept-year">Year</label>
+                    <input type="text" id="dept-year" name="dept_year" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;">
+                </div>
+            </div>
+            <button onclick="viewDepartmentPayroll()" style="margin-top: 10px; padding: 10px 20px; font-size: 16px; background-color: #007bff; 
+                    color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s;">Submit</button>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <h4>View Payroll Data of Employee (Monthly)</h4>
+            <div style="display: flex; justify-content: space-between;">
+                <div style="flex: 0 0 48%;">
+                    <label for="emp-month">Month</label>
+                    <select id="emp-month" name="emp_month" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;">
+                        <option value="">Select Month</option>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div style="flex: 0 0 48%;">
+                    <label for="emp-year">Year</label>
+                    <input type="text" id="emp-year" name="emp_year" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;">
+                </div>
+            </div>
+            <button onclick="viewEmployeePayrollMonthly()" style="margin-top: 10px; padding: 10px 20px; font-size: 16px; background-color: #007bff; 
+                    color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s;">Submit</button>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <h4>View Payroll Data for Employee (Yearly)</h4>
+            <div>
+                <label for="emp-yearly">Year</label>
+                <input type="text" id="emp-yearly" name="emp_yearly" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px;" oninput="viewEmployeePayrollYearly()">
+            </div>
+        </div>
+    </fieldset>
+
+
+    <script>
+        function generatePayrollPage() {
+            window.location.href = "/payrolls/add";
+        }
+
+        function viewDepartmentPayroll() {
+            const year = document.getElementById('dept-year').value;
+            const month = document.getElementById('dept-month').value;
+            if (year && month) {
+                const monthMap = {
+                    "01": "January",
+                    "02": "February",
+                    "03": "March",
+                    "04": "April",
+                    "05": "May",
+                    "06": "June",
+                    "07": "July",
+                    "08": "August",
+                    "09": "September",
+                    "10": "October",
+                    "11": "November",
+                    "12": "December",
+                };
+                window.location.href = `/payrolls/payrolldept/${year}/${monthMap[month]}`;
+            } else {
+                alert('Please fill all fields');
+            }
+        }
+
+        function viewEmployeePayrollMonthly() {
+            const year = document.getElementById('emp-year').value;
+            const month = document.getElementById('emp-month').value;
+            if (year && month) {
+                const monthMap = {
+                    "01": "January",
+                    "02": "February",
+                    "03": "March",
+                    "04": "April",
+                    "05": "May",
+                    "06": "June",
+                    "07": "July",
+                    "08": "August",
+                    "09": "September",
+                    "10": "October",
+                    "11": "November",
+                    "12": "December",
+                };
+                window.location.href = `/payrolls/payrollempmon/${year}/${monthMap[month]}`;
+            } else {
+                alert('Please fill all fields');
+            }
+        }
+
+        function viewEmployeePayrollYearly() {
+            const year = document.getElementById('emp-yearly').value;
+            if (year.length === 4) {
+                window.location.href = `/payrolls/payrollempyear/${year}`;
+            }
+        }
+    </script>
