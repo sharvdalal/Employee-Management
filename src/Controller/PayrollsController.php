@@ -12,13 +12,11 @@ class PayrollsController extends AppController
         parent::initialize();
         $this->loadModel('Employees');
         $this->loadModel('Attendances');
+        $this->loadModel('Payrolls');
         $this->loadModel('PayrollAdjustments');
     }
 
-    public function index() {
-
-
-    }
+    public function index() {}
 
 
     public function add()
@@ -44,14 +42,13 @@ class PayrollsController extends AppController
                 $data = $this->request->getData();
                 $employee_id = (int) $data['employee_id'];
                 $datetoFind = $data['year'] . '-' . $data['month'];
-                $monthName = $this->getMonthName($data['month']);
-                // $payrollPresent = $this->Payrolls->find()
-                //     ->where(['employee_id' => $employee_id, 'month' => $monthName, 'year' => $data['year']])->first();
-                // if ($payrollPresent) {
-                //     $payroll_id = $payrollPresent->id;
-                    // $this->Flash->success(__('The payroll has been Generated Before.'));
-                //     return $this->redirect(['action' => 'view',$datetoFind, $employee_id, $payroll_id]);
-                // }
+                $monthName = $this->getMonthNameSecond($data['month']);
+                $payrollPresent = $this->Payrolls->find()->where(['employee_id' => $employee_id, 'month' => $monthName, 'year' => $data['year']])->first();
+                if ($payrollPresent) {
+                    $payroll_id = $payrollPresent->id;
+                    $this->Flash->success(__('The payroll has been Generated Before.'));
+                    return $this->redirect(['action' => 'view', $datetoFind, $employee_id, $payroll_id]);
+                }
                 $employeeData = $this->Employees->find()
                     ->where(['Employees.id' => $employee_id])
                     ->contain([
@@ -91,7 +88,7 @@ class PayrollsController extends AppController
                     elseif ($attenData["status"] == "leave") $totLEV++;
                 }
 
-                if(($totPRE + $totABS + $totLEV) != $totWorkingDays){
+                if (($totPRE + $totABS + $totLEV) != $totWorkingDays) {
                     $this->Flash->error('Incorrect attendance record found For Given Period. Please Check Attendance data in Show Attendances');
                     $this->render('add');
                     return;
@@ -102,13 +99,13 @@ class PayrollsController extends AppController
                 $this->render('add');
             }
 
-            if($this->request->getData('second_form')){
+            if ($this->request->getData('second_form')) {
                 $base_salary = $this->request->getData('base_salary');
                 $employee_id = $this->request->getData('employee_id');
                 $date = $this->request->getData('date');
                 $payroll_adjustments = $this->request->getData('payroll_adjustments');
                 list($year, $month) = explode('-', $date);
-                
+
                 $data = [
                     'employee_id' => $employee_id,
                     'month' => $this->getMonthNameSecond($month),
@@ -124,31 +121,30 @@ class PayrollsController extends AppController
 
                 if ($this->Payrolls->save($payroll)) {
                     $this->Flash->success(__('The payroll has been saved.'));
-                    return $this->redirect(['action' => 'view',$date, $employee_id, $payroll->id]);
+                    return $this->redirect(['action' => 'view', $date, $employee_id, $payroll->id]);
                 } else {
                     $this->Flash->error(__('Unable to save the payroll. Please try again.'));
                 }
-        
             }
         }
     }
 
 
 
-    public function view($date, $employeeId, $payrollId) 
+    public function view($date, $employeeId, $payrollId)
     {
         $attendance = $this->Attendances->find()
-        ->where(['employee_id' => $employeeId, 'date LIKE' => $date . '%']);    
+            ->where(['employee_id' => $employeeId, 'date LIKE' => $date . '%']);
 
-      $attendanceData =   $attendance->enableHydration(false)->toArray();
- 
+        $attendanceData =   $attendance->enableHydration(false)->toArray();
 
 
-      $totWorkingDays = $this->getWorkingDays($date); 
+
+        $totWorkingDays = $this->getWorkingDays($date);
         $totPRE = 0;
         $totLEV = 0;
         $totABS = 0;
-    
+
         foreach ($attendanceData as $attendance) {
             if ($attendance["status"] === 'present') {
                 $totPRE++;
@@ -166,12 +162,56 @@ class PayrollsController extends AppController
         $payroll = $this->Payrolls->find()
             ->where(['Payrolls.id' => $payrollId, 'Payrolls.employee_id' => $employeeId])
             ->contain(['PayrollAdjustments']);
-            
+
         $payrollData =   $payroll->enableHydration(false)->toArray();
-       
-        $this->set(compact('payrollData', 'employeeData', 'attendanceData', 'date', 'totWorkingDays','totPRE', 'totLEV', 'totABS'));
+
+        $this->set(compact('payrollData', 'employeeData', 'attendanceData', 'date', 'totWorkingDays', 'totPRE', 'totLEV', 'totABS'));
         $this->render('view');
     }
+
+    public function payrollyear() {}
+
+    public function payrolldept($year, $month)
+    {
+        $query = $this->Employees->find()
+            ->select([
+                'department' => 'Employees.department',
+                'month' => 'Payrolls.month',
+                'year' => 'Payrolls.year',
+                'total_base_salary' => $this->Payrolls->find()->func()->sum('Payrolls.base_salary'),
+                'total_bonus' => $this->Employees->find()->func()->sum('TotalAdjustments.total_bonus'),
+                'total_deductions' => $this->Employees->find()->func()->sum('TotalAdjustments.total_deductions'),
+            ])
+            ->leftJoin(
+                ['Payrolls'],
+                ['Employees.id = Payrolls.employee_id']
+            )
+            ->leftJoin(
+                [
+                    'TotalAdjustments' =>
+                    $this->PayrollAdjustments->query()
+                        ->select([
+                            'payroll_id' => 'PayrollAdjustments.payroll_id',
+                            'total_bonus' => $this->PayrollAdjustments->query()->func()->sum(
+                                $this->PayrollAdjustments->query()->newExpr('CASE WHEN PayrollAdjustments.type = "Bonus" THEN PayrollAdjustments.amount ELSE 0 END')
+                            ),
+                            'total_deductions' => $this->PayrollAdjustments->query()->func()->sum(
+                                $this->PayrollAdjustments->query()->newExpr('CASE WHEN PayrollAdjustments.type = "Deductions" THEN PayrollAdjustments.amount ELSE 0 END')
+                            )
+                        ])
+                        ->group('PayrollAdjustments.payroll_id')
+                ],
+                ['Payrolls.id = TotalAdjustments.payroll_id']
+            )
+            ->where(['Payrolls.month' => $month, 'Payrolls.year' => $year])
+            ->group(['Employees.department', 'Payrolls.month', 'Payrolls.year']);
+        $Qarray = $query->enableHydration(false)->toArray();
+        $this->set(compact('query', 'year', 'month'));
+    }
+
+
+    public function payrollemp($year, $month) {}
+
 
 
 
@@ -195,15 +235,16 @@ class PayrollsController extends AppController
                 ->withStringBody(json_encode(['message' => 'Got Data Successfully', 'employees' => $employees]));
         }
     }
-    public function fetchPayrollID(){
+    public function fetchPayrollID()
+    {
         if ($this->request->is('ajax')) {
             $employee_id = (int) $this->request->getData('employee_id');
             $month = $this->request->getData('month');
             $year = $this->request->getData('year');
             $payroll = $this->Payrolls->find()
-            ->where(['employee_id' => $employee_id, 'year' => $year, 'month' => $month])
-            ->first();
-            
+                ->where(['employee_id' => $employee_id, 'year' => $year, 'month' => $month])
+                ->first();
+
             if (!$payroll) {
                 return $this->response
                     ->withStatus(404, 'Payroll Not Found')
@@ -212,10 +253,9 @@ class PayrollsController extends AppController
             }
             $id = $payroll->id;
             return $this->response
-            ->withStatus(200, 'Payroll  Found')
-            ->withType('json')
-            ->withStringBody(json_encode(['message' => 'Payroll data  found for the given employee.', 'id' => $id]));                                              
-           
+                ->withStatus(200, 'Payroll  Found')
+                ->withType('json')
+                ->withStringBody(json_encode(['message' => 'Payroll data  found for the given employee.', 'id' => $id]));
         }
     }
 
@@ -270,14 +310,14 @@ class PayrollsController extends AppController
     // }
 
 
-   
-
-    
 
 
-    
-   
-    
+
+
+
+
+
+
 
 
 
@@ -288,7 +328,7 @@ class PayrollsController extends AppController
         $this->autoRender = false;
         [$year, $month] = explode('-', $monthYear);
         if (is_numeric($month) === false) {
-            $month = date('m', strtotime($month)); 
+            $month = date('m', strtotime($month));
         }
         $totalDays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
         $workingDays = 0;
@@ -321,7 +361,8 @@ class PayrollsController extends AppController
         return isset($months[$monthNumber]) ? $months[$monthNumber] : "Invalid month number";
     }
 
-    private function getMonthNameSecond($monthNumber){
+    private function getMonthNameSecond($monthNumber)
+    {
         $months = [
             "01" => "January",
             "02" => "February",

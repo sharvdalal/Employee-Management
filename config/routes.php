@@ -71,6 +71,8 @@ Router::scope('/', function (RouteBuilder $routes) {
     Router::connect('/addattendance/:date', ['controller' => 'Attendances', 'action' => 'addattendance']);
     Router::connect('/showattendancedata/:date', ['controller' => 'Attendances', 'action' => 'showattendancedata']);
     Router::connect('/view/:date/:employeeId/:payrollId', ['controller' => 'Payrolls', 'action' => 'view']);
+    Router::connect('/payrolldept/:year/:month', ['controller' => 'Payrolls', 'action' => 'payrolldept']);
+    Router::connect('/payrolldept/:year/:month', ['controller' => 'Payrolls', 'action' => 'payrollemp']);
 
 
     /*

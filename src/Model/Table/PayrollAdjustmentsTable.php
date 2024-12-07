@@ -42,7 +42,6 @@ class PayrollAdjustmentsTable extends Table
 
         $this->belongsTo('Payrolls', [
             'foreignKey' => 'payroll_id',
-            'joinType' => 'INNER',
         ]);
     }
 
