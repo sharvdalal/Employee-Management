@@ -10,6 +10,7 @@ class Payroll extends Entity
         'month' => true,
         'year' => true,
         'payment_date' => true,
+        'base_salary' => true,
         'employee' => true,
         'payroll_adjustments' => true,
     ];

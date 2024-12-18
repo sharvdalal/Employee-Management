@@ -44,6 +44,11 @@ class PayrollsTable extends Table
             ->requirePresence('payment_date', 'create')
             ->notEmptyDate('payment_date');
 
+            $validator
+            ->decimal('base_salary')
+            ->requirePresence('base_salary', 'create')
+            ->notEmptyString('base_salary', 'Base salary is required');
+
         return $validator;
     }
 }
